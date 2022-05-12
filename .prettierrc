@@ -1,5 +1,5 @@
 {
-  "trailingComma": " none ",
+  "trailingComma": "none123",
   "overrides": [
     {
       "files": "**/lwc/**/*.html",
