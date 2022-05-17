@@ -1,0 +1,139 @@
+#!groovy
+ 
+import groovy.json.JsonSlurperClassic
+
+node {
+	// -------------------------------------------------------------------------
+    // Check out code from source control.
+    // -------------------------------------------------------------------------
+  
+	properties([disableConcurrentBuilds()])
+	stage('Checkout Source') {
+       	checkout scm
+    }
+	
+	
+    withEnv(["HOME=${env.WORKSPACE}"]) {
+        withEnv(["PATH+sfx=${WORKSPACE}/sfdx/bin"]) {
+            stage('Install SFDX') {
+                sh '''
+                    if [ -x sfdx/bin/sfdx ]; then exit 0; fi
+                    mkdir -p sfdx
+                    curl -sS -o sfdx.tar.xz https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+                    ls -l sfdx.tar.xz
+                    tar xJf sfdx.tar.xz -C sfdx --strip-components 1
+                '''
+                sh 'echo WORKSPACE=${WORKSPACE}'
+                sh 'echo $PATH'
+                sh 'sfdx --help'
+            }
+			
+			stage("Set ENV Variables"){
+				def SF_CONSUMER_KEY=env.SF_CONSUMER_KEY
+                def SF_USERNAME=env.SF_USERNAME
+                def SERVER_KEY_CREDENTALS_ID=env.SERVER_KEY_CREDENTALS_ID
+                def TEST_LEVEL='RunLocalTests'
+                def SF_INSTANCE_URL = 'endava-a6-dev-ed.my.salesforce.com'      
+			}
+			
+			withCredentials([file(credentialsId: 'Server key', variable: 'SERVER_KEY_CREDENTIALS_ID')]) {
+                
+
+                // -------------------------------------------------------------------------
+                // Logout from Dev Hub.
+                // -------------------------------------------------------------------------
+
+                stage('Logout from DevHub') {
+                    rc = command '''export SFDX_USE_GENERIC_UNIX_KEYCHAIN=true
+                    sfdx force:auth:logout --targetusername andrei.deacu@endava.com -p'''
+                }
+                
+                // -------------------------------------------------------------------------
+                // Authorize the Dev Hub org with JWT key and give it an alias.
+                // -------------------------------------------------------------------------
+
+                stage('Authorize DevHub') {
+                    rc = command '''export SFDX_USE_GENERIC_UNIX_KEYCHAIN=true
+                    sfdx auth:jwt:grant --clientid 3MVG9t0sl2P.pBypAJGN.rdL4wEvYWgGMRD_VdH8It9SFSuNSXs_Ghz4ZM5sBQvHZ57yuFzrcj5dB6a2qxTMK --jwtkeyfile /vagrant/openssl/server.key --username andrei.deacu@endava.com --setdefaultdevhubusername --setalias GeoAppScratch'''
+                    if (rc != 0) {
+                        error 'Salesforce dev hub org authorization failed.'
+                    }
+                }
+                
+                // -------------------------------------------------------------------------
+                // Cloning repo for GitHub.
+                // -------------------------------------------------------------------------
+                
+                stage('Cloning') {
+                    rc = command "git clone https://github.com/ADeacu/ScratchOrg.git"
+                }
+                
+                // -------------------------------------------------------------------------
+                // Create new scratch org to test your code.
+                // -------------------------------------------------------------------------
+                /*
+                stage('Create Test Scratch Org') {
+                    rc = command "sfdx force:org:create -f /var/lib/jenkins/workspace/sfdxBuild/ScratchOrg/config/project-scratch-def.json -a GeoTestOrg"
+                    if (rc != 0) {
+                        error 'Salesforce test scratch org creation failed.'
+                    }
+                }
+                
+                // -------------------------------------------------------------------------
+                // Display test scratch org info.
+                // -------------------------------------------------------------------------
+                
+                stage('Display Test Scratch Org') {
+                    rc = command "sfdx force:org:display --targetusername GeoTestOrg"
+                    if (rc != 0) {
+                        error 'Salesforce test scratch org display failed.'
+                    }
+                }*/
+             
+                // -------------------------------------------------------------------------
+                // Push source to test scratch org.
+                // -------------------------------------------------------------------------
+                
+                stage('Push your local source and metadata to the scratch org'){
+                    rc = command '''export SFDX_USE_GENERIC_UNIX_KEYCHAIN=true
+                    sfdx force:source:push --targetusername GeoTestOrg'''
+                    
+                    if (rc != 0) {
+                        sh '''export SFDX_USE_GENERIC_UNIX_KEYCHAIN=true
+                            sfdx force:org:delete --targetusername GeoTestOrg --noprompt'''
+                        error 'Salesforce push to test scratch org failed.'
+                    }
+                }
+                
+                stage('Assign your permission set'){
+                    rc = command "sfdx force:user:permset:assign -n Geolocation -u GeoTestOrg"
+                    if (rc != 0) {
+                        error 'Assign permission set failed'
+                    }
+                }
+                
+                stage('Load your sample data into the org'){
+                    rc = command "sfdx force:data:tree:import -f C:/Users/ProgramData/Jenkins/.jenkins/workspace/ScratchOrgTest/ScratchOrg/data/Account.json -u GeoTestOrg"
+                    if (rc != 0) {
+                        error 'Load sample data into the org failed'
+                    }
+                }
+                
+                stage('Open your org'){
+                    rc = command "sfdx force:org:open -u GeoTestOrg"
+                    if (rc != 0) {
+                        error 'Open org failed'
+                    }
+                }
+		    }
+        }
+    }
+}
+
+def command(script) {
+    if (isUnix()) {
+        return sh(returnStatus: true, script: script);
+    } else {
+        return bat(returnStatus: true, script: script);
+    }
+}
