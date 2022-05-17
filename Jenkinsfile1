@@ -28,12 +28,12 @@ node {
                 sh 'sfdx --help'
             }
 			
-			stage("Set ENV Variables"){
-				def SF_CONSUMER_KEY=env.SF_CONSUMER_KEY
-                def SF_USERNAME=env.SF_USERNAME
-                def SERVER_KEY_CREDENTALS_ID=env.SERVER_KEY_CREDENTALS_ID
-                def TEST_LEVEL='RunLocalTests'
-                def SF_INSTANCE_URL = 'endava-a6-dev-ed.my.salesforce.com'      
+		stage("Set ENV Variables"){
+			def SF_CONSUMER_KEY=env.SF_CONSUMER_KEY
+			def SF_USERNAME=env.SF_USERNAME
+			def SERVER_KEY_CREDENTALS_ID=env.SERVER_KEY_CREDENTALS_ID
+			def TEST_LEVEL='RunLocalTests'
+			def SF_INSTANCE_URL = 'endava-a6-dev-ed.my.salesforce.com'      
 			}
 			
 			withCredentials([file(credentialsId: 'Server key', variable: 'SERVER_KEY_CREDENTIALS_ID')]) {
@@ -59,19 +59,11 @@ node {
                         error 'Salesforce dev hub org authorization failed.'
                     }
                 }
-                
-                // -------------------------------------------------------------------------
-                // Cloning repo for GitHub.
-                // -------------------------------------------------------------------------
-                
-                stage('Cloning') {
-                    rc = command "git clone https://github.com/ADeacu/ScratchOrg.git"
-                }
-                
+             
                 // -------------------------------------------------------------------------
                 // Create new scratch org to test your code.
                 // -------------------------------------------------------------------------
-                /*
+                
                 stage('Create Test Scratch Org') {
                     rc = command "sfdx force:org:create -f /var/lib/jenkins/workspace/sfdxBuild/ScratchOrg/config/project-scratch-def.json -a GeoTestOrg"
                     if (rc != 0) {
@@ -88,7 +80,7 @@ node {
                     if (rc != 0) {
                         error 'Salesforce test scratch org display failed.'
                     }
-                }*/
+                }
              
                 // -------------------------------------------------------------------------
                 // Push source to test scratch org.
