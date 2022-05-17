@@ -65,7 +65,7 @@ node {
                 // -------------------------------------------------------------------------
                 
                 stage('Create Test Scratch Org') {
-                    rc = command "sfdx force:org:create -f /var/lib/jenkins/workspace/sfdxBuild/ScratchOrg/config/project-scratch-def.json -a GeoTestOrg"
+                    rc = command "sfdx force:org:create -f config/project-scratch-def.json -a GeoTestOrg"
                     if (rc != 0) {
                         error 'Salesforce test scratch org creation failed.'
                     }
