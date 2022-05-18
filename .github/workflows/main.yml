@@ -46,7 +46,7 @@ jobs:
           sfdx force:auth:jwt:grant --clientid=${{ secrets.SALESFORCE_CONSUMER_KEY }} --jwtkeyfile=server.key --username=${{ secrets.SALESFORCE_DEVHUB_USERNAME }} --setdefaultdevhubusername --instanceurl ${{ secrets.SALESFORCE_INSTANCE_URL }}
         
       - name: Create Scratch Org
-        run: sfdx force:org:create config/sfdx-scratch-def.json -a ScratchOrgTest
+        run: sfdx force:org:create -f config/sfdx-scratch-def.json -a ScratchOrgTest
 
       - name: Display Test Scratch Org
         run: sfdx force:org:display -u ScratchOrgTest
