@@ -50,4 +50,7 @@ jobs:
 
       - name: Display Test Scratch Org
         run: sfdx force:org:display -u ScratchOrgTest
+        
+      - name: Push Scratch Org
+        run: sfdx force:source:push -u ScratchOrgTest
 
